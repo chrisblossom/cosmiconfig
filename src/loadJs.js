@@ -1,7 +1,7 @@
 // @flow
 'use strict';
 
-const requireFromString = require('require-from-string');
+const requireJs = require('./requireJs');
 const readFile = require('./readFile');
 
 module.exports = function loadJs(
@@ -12,7 +12,7 @@ module.exports = function loadJs(
     if (!content) return null;
 
     return {
-      config: requireFromString(content, filepath),
+      config: requireJs(content, filepath),
       filepath,
     };
   }

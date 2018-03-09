@@ -2,7 +2,7 @@
 'use strict';
 
 const yaml = require('js-yaml');
-const requireFromString = require('require-from-string');
+const requireJs = require('./requireJs');
 const readFile = require('./readFile');
 const parseJson = require('./parseJson');
 const funcRunner = require('./funcRunner');
@@ -90,7 +90,7 @@ module.exports = function loadRc(
         } else if (jsContent) {
           const successFilepath = `${filepath}.js`;
           foundConfig = {
-            config: requireFromString(jsContent, successFilepath),
+            config: requireJs(jsContent, successFilepath),
             filepath: successFilepath,
           };
         } else {

@@ -16,6 +16,9 @@ const expectForFormat = {
   js(err) {
     expect(err.name).toBe('ReferenceError');
   },
+  'es-module'(err) {
+    expect(err.message).toMatch(/must use default export with ES Modules/);
+  },
 };
 
 function makeSyntaxErrWithoutKnownExtnameTest(format) {
@@ -109,6 +112,11 @@ describe('cosmiconfig', () => {
         makeSyntaxErrTest('js')
       );
 
+      it(
+        'throws error if defined JS ES Modules file does not have default export',
+        makeSyntaxErrTest('es-module')
+      );
+
       it('throws error for empty file, format JS', makeEmptyFileTest('js'));
 
       it('throws error for empty file, format JSON', makeEmptyFileTest('json'));
@@ -130,6 +138,11 @@ describe('cosmiconfig', () => {
       it(
         'throws error if defined JS file has syntax error',
         makeSyntaxErrWithFormatTest('js')
+      );
+
+      it(
+        'throws error if defined JS ES Modules file does not have default export',
+        makeSyntaxErrWithFormatTest('es-module')
       );
 
       it(
@@ -162,6 +175,11 @@ describe('cosmiconfig', () => {
       it(
         'throws error if defined JS file has syntax error',
         makeSyntaxErrWithoutKnownExtnameTest('js')
+      );
+
+      it(
+        'throws error if defined JS ES Modules file has syntax error',
+        makeSyntaxErrWithoutKnownExtnameTest('es-module')
       );
     });
 
