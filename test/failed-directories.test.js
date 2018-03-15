@@ -187,6 +187,9 @@ describe('cosmiconfig', () => {
       } catch (err) {
         expect(err.name).toBe('SyntaxError');
       }
+
+      jest.resetModules();
+
       return search(false).catch(err => {
         expect(err.name).toBe('SyntaxError');
       });
@@ -266,6 +269,9 @@ describe('cosmiconfig', () => {
         } catch (err) {
           expect(err.name).toBe('SyntaxError');
         }
+
+        jest.resetModules();
+
         return search({ sync: false }).catch(err => {
           expect(err.name).toBe('SyntaxError');
         });

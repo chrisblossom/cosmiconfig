@@ -83,7 +83,6 @@ exports.assertSearchSequence = function assertSearchSequence(
   startCount
 ) {
   startCount = startCount || 0;
-  dirname = dirname || __dirname;
 
   expect(readFileSpy).toHaveBeenCalledTimes(searchPaths.length + startCount);
 
@@ -93,17 +92,6 @@ exports.assertSearchSequence = function assertSearchSequence(
     );
   });
 };
-
-function makeReadFileMockImpl(readFile) {
-  return (searchPath, encoding, callback) => {
-    try {
-      callback(null, readFile(searchPath));
-    } catch (err) {
-      callback(err);
-    }
-  };
-}
-exports.makeReadFileMockImpl = makeReadFileMockImpl;
 
 exports.spyOnReadFile = function spyOnReadFile(sync) {
   const fs = require('fs');

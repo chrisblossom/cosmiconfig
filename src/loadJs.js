@@ -11,6 +11,14 @@ module.exports = function loadJs(
 ): Promise<?cosmiconfig$Result> | ?cosmiconfig$Result {
   const parseJsFile = createParseFile(filepath, requireJs, options.ignoreEmpty);
 
+  // TODO: Remove readFile from all loading js
+  // const config = requireJs(undefined, filepath);
+  //
+  // return {
+  //   config,
+  //   filepath,
+  // };
+
   return !options.sync
     ? readFile(filepath).then(parseJsFile)
     : parseJsFile(readFile.sync(filepath));

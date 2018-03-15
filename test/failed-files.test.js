@@ -27,6 +27,8 @@ function makeSyntaxErrWithoutKnownExtnameTest(format) {
       /^Failed to parse/
     );
 
+    jest.resetModules();
+
     return configFileLoader(null, file).catch(err => {
       expect(err.message).toMatch(/^Failed to parse/);
     });
@@ -44,6 +46,12 @@ function makeSyntaxErrTest(format) {
       expectForFormat[format](err);
     }
 
+    /**
+     * Because of require cache we need to reset modules before running
+     * async test
+     */
+    jest.resetModules();
+
     return configFileLoader(null, file).catch(expectForFormat[format]);
   };
 }
@@ -58,6 +66,12 @@ function makeSyntaxErrWithFormatTest(format) {
     } catch (err) {
       expectForFormat[format](err);
     }
+
+    /**
+     * Because of require cache we need to reset modules before running
+     * async test
+     */
+    jest.resetModules();
 
     return configFileLoader({ format }, file).catch(expectForFormat[format]);
   };

@@ -1,10 +1,12 @@
 // @flow
 'use strict';
 
-const requireFromString = require('require-from-string');
+// const requireFromString = require('require-from-string');
 
+// TODO: parse content if non-js file
 function requireJs(content: string, filepath: string) {
-  let result = requireFromString(content, filepath);
+  // let result = requireFromString(content, filepath);
+  let result = require(filepath);
 
   /**
    * Handle ES Modules
