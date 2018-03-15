@@ -1,62 +1,39 @@
 'use strict';
 
-jest.mock('fs');
-
-const fsMock = require('fs');
-
 const util = require('./util');
 const cosmiconfig = require('../src');
 
-const absolutePath = util.absolutePath;
-const mockStatIsDirectory = util.mockStatIsDirectory;
 const testFuncsRunner = util.testFuncsRunner;
 const testSyncAndAsync = util.testSyncAndAsync;
 
-beforeAll(() => {
-  function readFile(searchPath) {
-    switch (searchPath) {
-      case absolutePath('a/b/c/d/e/f/package.json'):
-      case absolutePath('a/b/c/d/e/f/.foorc'):
-      case absolutePath('a/b/c/d/e/f/foo.config.js'):
-      case absolutePath('a/b/c/d/e/package.json'):
-      case absolutePath('a/b/c/d/e/.foorc'):
-      case absolutePath('a/b/c/d/e/foo.config.js'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/c/d/package.json'):
-        return '{ "false": "hope" }';
-      case absolutePath('a/b/c/d/.foorc'):
-        return '{ "foundInD": true }';
-      case absolutePath('a/b/c/d/foo.config.js'):
-      case absolutePath('a/b/c/package.json'):
-      case absolutePath('a/b/c/.foorc'):
-      case absolutePath('a/b/c/foo.config.js'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/package.json'):
-        return '{ "foo": { "foundInB": true } }';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  }
+const temp = new util.TempDir();
 
-  jest
-    .spyOn(fsMock, 'readFile')
-    .mockImplementation(util.makeReadFileMockImpl(readFile));
-  jest.spyOn(fsMock, 'readFileSync').mockImplementation(readFile);
+beforeEach(() => {
+  temp.createDir('a/b/c/d/e/f/');
+  temp.createFile('a/b/c/d/package.json', '{ "false": "hope" }');
+  temp.createFile('a/b/c/d/.foorc', '{ "foundInD": true }');
+  temp.createFile('a/b/package.json', '{ "foo": { "foundInB": true } }');
 });
 
 afterEach(() => {
-  // Resets all information stored in the mock,
-  // including any inital implementation given.
-  fsMock.stat.mockReset();
-  fsMock.statSync.mockReset();
+  /**
+   * Reset all spyOn mocks to initial implementation
+   */
+  jest.restoreAllMocks();
+  jest.resetAllMocks();
+  jest.resetModules();
 
-  // Clean up a mock's usage data between tests
-  fsMock.readFile.mockClear();
-  fsMock.readFileSync.mockClear();
+  /**
+   * Clean temp directory after each test
+   */
+  temp.clean();
 });
 
 afterAll(() => {
-  jest.resetAllMockss();
+  /**
+   * Remove temp.dir created for tests
+   */
+  temp.remove();
 });
 
 const cachedSearch = cosmiconfig('foo').search;
@@ -66,20 +43,19 @@ const cachedLoadSync = cosmiconfig('foo', { sync: true }).load;
 const cachedSearchFor = sync =>
   sync === true ? cachedSearchSync : cachedSearch;
 const cachedLoadFor = sync => (sync === true ? cachedLoadSync : cachedLoad);
-const readFileMockFor = sync =>
-  sync === true ? fsMock.readFileSync : fsMock.readFile;
 
 describe('cosmiconfig', () => {
   describe('cache', () => {
     testSyncAndAsync('is not used initially', sync => () => {
       const search = cachedSearchFor(sync);
-      const searchPath = absolutePath('a/b/c/d/e');
-      mockStatIsDirectory(true);
+      const searchPath = temp.absolutePath('a/b/c/d/e');
+
+      const readFileSpy = util.spyOnReadFile(sync);
 
       expect.hasAssertions();
       return testFuncsRunner(sync, search(searchPath), [
         result => {
-          util.assertSearchSequence(readFileMockFor(sync), [
+          util.assertSearchSequence(readFileSpy, temp.dir, [
             'a/b/c/d/e/package.json',
             'a/b/c/d/e/.foorc',
             'a/b/c/d/e/foo.config.js',
@@ -87,7 +63,7 @@ describe('cosmiconfig', () => {
             'a/b/c/d/.foorc',
           ]);
           expect(result).toEqual({
-            filepath: absolutePath('a/b/c/d/.foorc'),
+            filepath: temp.absolutePath('a/b/c/d/.foorc'),
             config: { foundInD: true },
           });
         },
@@ -97,15 +73,15 @@ describe('cosmiconfig', () => {
     testSyncAndAsync('is used for already visited directories', sync => () => {
       const search = cachedSearchFor(sync);
       // E and D visited above
-      const searchPath = absolutePath('a/b/c/d/e');
-      mockStatIsDirectory(true);
+      const searchPath = temp.absolutePath('a/b/c/d/e');
+      const readFileSpy = util.spyOnReadFile(sync);
 
       expect.hasAssertions();
       return testFuncsRunner(sync, search(searchPath), [
         result => {
-          expect(readFileMockFor(sync)).toHaveBeenCalledTimes(0);
+          expect(readFileSpy).toHaveBeenCalledTimes(0);
           expect(result).toEqual({
-            filepath: absolutePath('a/b/c/d/.foorc'),
+            filepath: temp.absolutePath('a/b/c/d/.foorc'),
             config: { foundInD: true },
           });
         },
@@ -117,19 +93,19 @@ describe('cosmiconfig', () => {
       sync => () => {
         const search = cachedSearchFor(sync);
         // E and D visited above, not F
-        const searchPath = absolutePath('a/b/c/d/e/f');
-        mockStatIsDirectory(true);
+        const searchPath = temp.absolutePath('a/b/c/d/e/f');
+        const readFileSpy = util.spyOnReadFile(sync);
 
         expect.hasAssertions();
         return testFuncsRunner(sync, search(searchPath), [
           result => {
-            util.assertSearchSequence(readFileMockFor(sync), [
+            util.assertSearchSequence(readFileSpy, temp.dir, [
               'a/b/c/d/e/f/package.json',
               'a/b/c/d/e/f/.foorc',
               'a/b/c/d/e/f/foo.config.js',
             ]);
             expect(result).toEqual({
-              filepath: absolutePath('a/b/c/d/.foorc'),
+              filepath: temp.absolutePath('a/b/c/d/.foorc'),
               config: { foundInD: true },
             });
           },
@@ -140,15 +116,15 @@ describe('cosmiconfig', () => {
     testSyncAndAsync('is not used for unvisited config file', sync => () => {
       const load = cachedLoadFor(sync);
       // B not yet visited
-      const configFile = absolutePath('a/b/package.json');
-      mockStatIsDirectory(false);
+      const configFile = temp.absolutePath('a/b/package.json');
+      const readFileSpy = util.spyOnReadFile(sync);
 
       expect.hasAssertions();
       return testFuncsRunner(sync, load(configFile), [
         result => {
-          expect(readFileMockFor(sync)).toHaveBeenCalledTimes(1);
+          expect(readFileSpy).toHaveBeenCalledTimes(1);
           expect(result).toEqual({
-            filepath: absolutePath('a/b/package.json'),
+            filepath: temp.absolutePath('a/b/package.json'),
             config: { foundInB: true },
           });
         },
@@ -159,13 +135,13 @@ describe('cosmiconfig', () => {
       'is not used in a new cosmiconfig instance',
       sync => () => {
         const search = cosmiconfig('foo', { sync }).search;
-        const searchPath = absolutePath('a/b/c/d/e');
-        mockStatIsDirectory(true);
+        const searchPath = temp.absolutePath('a/b/c/d/e');
+        const readFileSpy = util.spyOnReadFile(sync);
 
         expect.hasAssertions();
         return testFuncsRunner(sync, search(searchPath), [
           result => {
-            util.assertSearchSequence(readFileMockFor(sync), [
+            util.assertSearchSequence(readFileSpy, temp.dir, [
               'a/b/c/d/e/package.json',
               'a/b/c/d/e/.foorc',
               'a/b/c/d/e/foo.config.js',
@@ -173,7 +149,7 @@ describe('cosmiconfig', () => {
               'a/b/c/d/.foorc',
             ]);
             expect(result).toEqual({
-              filepath: absolutePath('a/b/c/d/.foorc'),
+              filepath: temp.absolutePath('a/b/c/d/.foorc'),
               config: { foundInD: true },
             });
           },
@@ -183,15 +159,15 @@ describe('cosmiconfig', () => {
 
     testSyncAndAsync('still works on old instance', sync => () => {
       const search = cachedSearchFor(sync);
-      const searchPath = absolutePath('a/b/c/d/e');
-      mockStatIsDirectory(true);
+      const searchPath = temp.absolutePath('a/b/c/d/e');
+      const readFileSpy = util.spyOnReadFile(sync);
 
       expect.hasAssertions();
       return testFuncsRunner(sync, search(searchPath), [
         result => {
-          expect(readFileMockFor(sync)).toHaveBeenCalledTimes(0);
+          expect(readFileSpy).toHaveBeenCalledTimes(0);
           expect(result).toEqual({
-            filepath: absolutePath('a/b/c/d/.foorc'),
+            filepath: temp.absolutePath('a/b/c/d/.foorc'),
             config: { foundInD: true },
           });
         },
@@ -202,17 +178,16 @@ describe('cosmiconfig', () => {
       'clears load cache on calling clearLoadCache',
       sync => () => {
         const explorer = cosmiconfig('foo', { sync });
-        const searchPath = absolutePath('a/b/c/d/.foorc');
-        mockStatIsDirectory(false);
+        const searchPath = temp.absolutePath('a/b/c/d/.foorc');
+        const readFileSpy = util.spyOnReadFile(sync);
 
         const expectedResult = {
-          filepath: absolutePath('a/b/c/d/.foorc'),
+          filepath: temp.absolutePath('a/b/c/d/.foorc'),
           config: { foundInD: true },
         };
-        const readFileMock = readFileMockFor(sync);
 
         function expectation(result) {
-          util.assertSearchSequence(readFileMock, ['a/b/c/d/.foorc']);
+          util.assertSearchSequence(readFileSpy, temp.dir, ['a/b/c/d/.foorc']);
           expect(result).toEqual(expectedResult);
         }
 
@@ -226,7 +201,7 @@ describe('cosmiconfig', () => {
           },
           () => explorer.load(searchPath),
           result => {
-            util.assertSearchSequence(readFileMock, [
+            util.assertSearchSequence(readFileSpy, temp.dir, [
               'a/b/c/d/.foorc',
               'a/b/c/d/.foorc',
             ]);
@@ -240,17 +215,16 @@ describe('cosmiconfig', () => {
       'clears search cache on calling clearSearchCache',
       sync => () => {
         const explorer = cosmiconfig('foo', { sync });
-        const searchPath = absolutePath('a/b/c/d/e');
-        mockStatIsDirectory(true);
+        const searchPath = temp.absolutePath('a/b/c/d/e');
+        const readFileSpy = util.spyOnReadFile(sync);
 
         const expectedResult = {
-          filepath: absolutePath('a/b/c/d/.foorc'),
+          filepath: temp.absolutePath('a/b/c/d/.foorc'),
           config: { foundInD: true },
         };
-        const readFileMock = readFileMockFor(sync);
 
         function expectation(result) {
-          util.assertSearchSequence(readFileMock, [
+          util.assertSearchSequence(readFileSpy, temp.dir, [
             'a/b/c/d/e/package.json',
             'a/b/c/d/e/.foorc',
             'a/b/c/d/e/foo.config.js',
@@ -270,7 +244,7 @@ describe('cosmiconfig', () => {
           },
           () => explorer.search(searchPath),
           result => {
-            util.assertSearchSequence(readFileMock, [
+            util.assertSearchSequence(readFileSpy, temp.dir, [
               'a/b/c/d/e/package.json',
               'a/b/c/d/e/.foorc',
               'a/b/c/d/e/foo.config.js',
@@ -292,24 +266,23 @@ describe('cosmiconfig', () => {
       'clears both load and search cache on calling clearCaches',
       sync => () => {
         const explorer = cosmiconfig('foo', { sync });
-        const searchPathFile = absolutePath('a/b/c/d/.foorc');
-        const searchPathDir = absolutePath('a/b/c/d/e');
-        mockStatIsDirectory(true);
+        const searchPathFile = temp.absolutePath('a/b/c/d/.foorc');
+        const searchPathDir = temp.absolutePath('a/b/c/d/e');
+        const readFileSpy = util.spyOnReadFile(sync);
 
         const expectedResult = {
-          filepath: absolutePath('a/b/c/d/.foorc'),
+          filepath: temp.absolutePath('a/b/c/d/.foorc'),
           config: { foundInD: true },
         };
-        const readFileMock = readFileMockFor(sync);
 
         function freshLoadFileExpect(result) {
-          util.assertSearchSequence(readFileMock, ['a/b/c/d/.foorc']);
+          util.assertSearchSequence(readFileSpy, temp.dir, ['a/b/c/d/.foorc']);
           expect(result).toEqual(expectedResult);
-          readFileMock.mockClear();
+          readFileSpy.mockClear();
         }
 
         function freshLoadDirExpect(result) {
-          util.assertSearchSequence(readFileMock, [
+          util.assertSearchSequence(readFileSpy, temp.dir, [
             'a/b/c/d/e/package.json',
             'a/b/c/d/e/.foorc',
             'a/b/c/d/e/foo.config.js',
@@ -317,16 +290,14 @@ describe('cosmiconfig', () => {
             'a/b/c/d/.foorc',
           ]);
           expect(result).toEqual(expectedResult);
-          readFileMock.mockClear();
+          readFileSpy.mockClear();
         }
 
         function loadFromFile() {
-          mockStatIsDirectory(false);
           return explorer.load(searchPathFile);
         }
 
         function loadFromDir() {
-          mockStatIsDirectory(true);
           return explorer.search(searchPathDir);
         }
 
@@ -336,7 +307,7 @@ describe('cosmiconfig', () => {
           loadFromFile,
           result => {
             // cachedSearchFileExpect
-            expect(readFileMock).not.toHaveBeenCalled();
+            expect(readFileSpy).not.toHaveBeenCalled();
             expect(result).toEqual(expectedResult);
           },
           loadFromDir,
@@ -344,7 +315,7 @@ describe('cosmiconfig', () => {
           loadFromDir,
           result => {
             // cachedSearchDirExpect
-            expect(readFileMock).not.toHaveBeenCalled(); // so no need to clear
+            expect(readFileSpy).not.toHaveBeenCalled(); // so no need to clear
             expect(result).toEqual(expectedResult);
           },
           () => {
@@ -375,22 +346,21 @@ describe('cosmiconfig', () => {
 
     testSyncAndAsync('does not cache search results', sync => () => {
       const search = cosmiconfig('foo', { sync, cache: false }).search;
-      const searchPath = absolutePath('a/b/c/d');
-      mockStatIsDirectory(true);
+      const searchPath = temp.absolutePath('a/b/c/d');
+      const readFileSpy = util.spyOnReadFile(sync);
 
       const expectedResult = {
-        filepath: absolutePath('a/b/c/d/.foorc'),
+        filepath: temp.absolutePath('a/b/c/d/.foorc'),
         config: { foundInD: true },
       };
-      const readFileMock = readFileMockFor(sync);
 
       function expectation(result) {
-        util.assertSearchSequence(readFileMock, [
+        util.assertSearchSequence(readFileSpy, temp.dir, [
           'a/b/c/d/package.json',
           'a/b/c/d/.foorc',
         ]);
         expect(result).toEqual(expectedResult);
-        readFileMock.mockClear();
+        readFileSpy.mockClear();
       }
 
       expect.hasAssertions();
@@ -403,19 +373,18 @@ describe('cosmiconfig', () => {
 
     testSyncAndAsync('does not cache load results', sync => () => {
       const explorer = cosmiconfig('foo', { sync, cache: false });
-      const searchPath = absolutePath('a/b/c/d/.foorc');
-      mockStatIsDirectory(false);
+      const searchPath = temp.absolutePath('a/b/c/d/.foorc');
+      const readFileSpy = util.spyOnReadFile(sync);
 
       const expectedResult = {
-        filepath: absolutePath('a/b/c/d/.foorc'),
+        filepath: temp.absolutePath('a/b/c/d/.foorc'),
         config: { foundInD: true },
       };
-      const readFileMock = readFileMockFor(sync);
 
       function expectation(result) {
-        util.assertSearchSequence(readFileMock, ['a/b/c/d/.foorc']);
+        util.assertSearchSequence(readFileSpy, temp.dir, ['a/b/c/d/.foorc']);
         expect(result).toEqual(expectedResult);
-        readFileMock.mockClear();
+        readFileSpy.mockClear();
       }
 
       expect.hasAssertions();
