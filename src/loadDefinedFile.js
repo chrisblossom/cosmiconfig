@@ -2,7 +2,7 @@
 'use strict';
 
 const yaml = require('js-yaml');
-const requireFromString = require('require-from-string');
+const requireJs = require('./requireJs');
 const readFile = require('./readFile');
 const parseJson = require('./parseJson');
 const path = require('path');
@@ -31,7 +31,7 @@ module.exports = function loadDefinedFile(
         });
         break;
       case 'js':
-        parsedConfig = requireFromString(content, filepath);
+        parsedConfig = requireJs(filepath);
         break;
       default:
         parsedConfig = tryAllParsing(content, filepath);
@@ -91,7 +91,8 @@ function tryYaml(content: string, filepath: string, cb: () => ?Object) {
 
 function tryRequire(content: string, filepath: string, cb: () => ?Object) {
   try {
-    return requireFromString(content, filepath);
+    // TODO: Might not be tested with a successful load
+    return requireJs(filepath);
   } catch (e) {
     return cb();
   }

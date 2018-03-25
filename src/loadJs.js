@@ -1,9 +1,13 @@
 // @flow
 'use strict';
 
-const requireFromString = require('require-from-string');
+const requireJs = require('./requireJs');
 const readFile = require('./readFile');
 const createParseFile = require('./createParseFile');
+
+function requireJsWrapper(content, filePath) {
+  return requireJs(filePath);
+}
 
 module.exports = function loadJs(
   filepath: string,
@@ -11,10 +15,13 @@ module.exports = function loadJs(
 ): Promise<?cosmiconfig$Result> | ?cosmiconfig$Result {
   const parseJsFile = createParseFile(
     filepath,
-    requireFromString,
+    requireJsWrapper,
     options.ignoreEmpty
   );
 
+  /**
+   * use readFile to verify the file exists
+   */
   return !options.sync
     ? readFile(filepath).then(parseJsFile)
     : parseJsFile(readFile.sync(filepath));
