@@ -27,19 +27,20 @@ describe('gives up if it cannot find the file', () => {
   const startDir = temp.absolutePath('a/b');
 
   const checkResult = (statSpy, readFileSpy, result) => {
-    expect(statSpy).toHaveBeenCalledTimes(1);
-    expect(statSpy.mock.calls[0][0]).toBe(startDir);
+    const statPath = temp.getSpyPathCalls(statSpy);
+    expect(statPath).toEqual(['a/b']);
 
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+    expect(searchPath).toEqual([
       'a/b/package.json',
       'a/b/.foorc',
       'a/b/foo.config.js',
       'a/package.json',
       'a/.foorc',
       'a/foo.config.js',
-      './package.json',
-      './.foorc',
-      './foo.config.js',
+      'package.json',
+      '.foorc',
+      'foo.config.js',
     ]);
     expect(result).toBe(null);
   };
@@ -71,7 +72,8 @@ describe('stops at stopDir and gives up', () => {
   const startDir = temp.absolutePath('a/b');
 
   const checkResult = (readFileSpy, result) => {
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+    expect(searchPath).toEqual([
       'a/b/package.json',
       'a/b/.foorc',
       'a/b/foo.config.js',

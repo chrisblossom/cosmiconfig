@@ -32,7 +32,8 @@ describe('finds rc file in third searched dir, with a package.json lacking prop'
   const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkResult = (readFileSpy, result) => {
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+    expect(searchPath).toEqual([
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/foo.config.js',
@@ -79,7 +80,8 @@ describe('finds package.json prop in second searched dir', () => {
   const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkResult = (readFileSpy, result) => {
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+    expect(searchPath).toEqual([
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/foo.config.js',
@@ -120,8 +122,11 @@ describe('finds JS file in first searched dir', () => {
   });
 
   const startDir = temp.absolutePath('a/b/c/d/e/f');
+
   const checkResult = (readFileSpy, result) => {
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+
+    expect(searchPath).toEqual([
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/foo.config.js',
@@ -160,7 +165,8 @@ describe('finds package.json in second dir searched, with alternate names', () =
   const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkResult = (readFileSpy, result) => {
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+    expect(searchPath).toEqual([
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.wowza',
       'a/b/c/d/e/f/wowzaConfig.js',
@@ -208,7 +214,8 @@ describe('finds rc file in third searched dir, skipping packageProp, with rcStri
   const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkResult = (readFileSpy, result) => {
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+    expect(searchPath).toEqual([
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/foo.config.js',
       'a/b/c/d/e/.foorc',
@@ -258,7 +265,8 @@ describe('finds rc file in third searched dir, skipping JS and RC files, with rc
   const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkResult = (readFileSpy, result) => {
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+    expect(searchPath).toEqual([
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/package.json',
     ]);
@@ -302,7 +310,8 @@ describe('with rcExtensions, finds .foorc.json in second searched dir', () => {
   const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkResult = (readFileSpy, result) => {
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+    expect(searchPath).toEqual([
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/.foorc.json',
@@ -352,7 +361,8 @@ describe('with rcExtensions, finds .foorc.yaml in first searched dir', () => {
   const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkResult = (readFileSpy, result) => {
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+    expect(searchPath).toEqual([
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/.foorc.json',
@@ -396,7 +406,8 @@ describe('with rcExtensions, finds .foorc.yml in first searched dir', () => {
   const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkResult = (readFileSpy, result) => {
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+    expect(searchPath).toEqual([
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/.foorc.json',
@@ -444,7 +455,8 @@ describe('with rcExtensions, finds .foorc.js in first searched dir', () => {
   const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkResult = (readFileSpy, result) => {
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+    expect(searchPath).toEqual([
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/.foorc.json',
@@ -498,7 +510,8 @@ describe('finds JS file traversing from cwd', () => {
   });
 
   const checkResult = (readFileSpy, result) => {
-    util.assertSearchSequence(readFileSpy, temp.dir, [
+    const searchPath = temp.getSpyPathCalls(readFileSpy);
+    expect(searchPath).toEqual([
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/foo.config.js',

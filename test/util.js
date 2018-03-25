@@ -16,6 +16,7 @@ exports.TempDir = class TempDir {
     this.absolutePath = this.absolutePath.bind(this);
     this.clean = this.clean.bind(this);
     this.remove = this.remove.bind(this);
+    this.getSpyPathCalls = this.getSpyPathCalls.bind(this);
   }
 
   createDir(dir) {
@@ -34,6 +35,18 @@ exports.TempDir = class TempDir {
     return path.join(this.dir, dir);
   }
 
+  getSpyPathCalls(spy) {
+    const calls = spy.mock.calls;
+
+    const result = calls.map(searchPath => {
+      const pathname = searchPath[0];
+
+      return path.relative(this.dir, pathname);
+    });
+
+    return result;
+  }
+
   clean() {
     const cleanPattern = this.absolutePath('**/*');
     del.sync(cleanPattern, {
@@ -45,21 +58,4 @@ exports.TempDir = class TempDir {
   remove() {
     del.sync(this.dir, { force: true, dot: true });
   }
-};
-
-exports.assertSearchSequence = function assertSearchSequence(
-  readFileSpy,
-  dirname,
-  searchPaths,
-  startCount
-) {
-  startCount = startCount || 0;
-
-  expect(readFileSpy).toHaveBeenCalledTimes(searchPaths.length + startCount);
-
-  searchPaths.forEach((searchPath, idx) => {
-    expect(readFileSpy.mock.calls[idx + startCount][0]).toBe(
-      path.join(dirname, searchPath)
-    );
-  });
 };
