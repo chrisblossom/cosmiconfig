@@ -1,58 +1,36 @@
 'use strict';
 
-jest.mock('fs');
-
-const fsMock = require('fs');
-
+const fs = require('fs');
 const util = require('./util');
 const cosmiconfig = require('../src');
 
-const absolutePath = util.absolutePath;
-const mockReadFile = util.mockReadFile;
+const temp = new util.TempDir();
 
-beforeAll(() => {
-  util.mockStatIsDirectory(true);
+beforeEach(() => {
+  temp.createDir('a/b/c/d/e/f/');
 });
 
 afterEach(() => {
-  // Resets all information stored in the mock,
-  // including any inital implementation given.
-  fsMock.readFile.mockReset();
-  fsMock.readFileSync.mockReset();
+  // Reset all spyOn mocks to initial implementation
+  jest.restoreAllMocks();
 
-  // Clean up a mock's usage data between tests
-  fsMock.stat.mockClear();
-  fsMock.statSync.mockClear();
+  // Clean temp directory before each test
+  temp.clean();
 });
 
 afterAll(() => {
-  jest.resetAllMocks();
+  // Remove temp.dir created for tests
+  temp.remove();
 });
 
 describe('gives up if it cannot find the file', () => {
-  const startDir = absolutePath('a/b');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/package.json'):
-      case absolutePath('a/b/.foorc'):
-      case absolutePath('a/b/foo.config.js'):
-      case absolutePath('a/package.json'):
-      case absolutePath('a/.foorc'):
-      case absolutePath('a/foo.config.js'):
-      case absolutePath('package.json'):
-      case absolutePath('.foorc'):
-      case absolutePath('foo.config.js'):
-        throw { code: 'ENOENT' };
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  const startDir = temp.absolutePath('a/b');
 
-  const checkResult = (statMock, readFileMock, result) => {
-    expect(statMock).toHaveBeenCalledTimes(1);
-    expect(statMock.mock.calls[0][0]).toBe(startDir);
+  const checkResult = (statSpy, readFileSpy, result) => {
+    expect(statSpy).toHaveBeenCalledTimes(1);
+    expect(statSpy.mock.calls[0][0]).toBe(startDir);
 
-    util.assertSearchSequence(readFileMock, [
+    util.assertSearchSequence(readFileSpy, temp.dir, [
       'a/b/package.json',
       'a/b/.foorc',
       'a/b/foo.config.js',
@@ -67,47 +45,33 @@ describe('gives up if it cannot find the file', () => {
   };
 
   test('async', () => {
-    const readFileMock = mockReadFile(false, readFile);
+    const readFileSpy = jest.spyOn(fs, 'readFile');
+    const statSpy = jest.spyOn(fs, 'stat');
     return cosmiconfig('foo', {
-      stopDir: absolutePath('.'),
+      stopDir: temp.absolutePath('.'),
     })
       .search(startDir)
       .then(result => {
-        checkResult(fsMock.stat, readFileMock, result);
+        checkResult(statSpy, readFileSpy, result);
       });
   });
 
   test('sync', () => {
-    const readFileMock = mockReadFile(true, readFile);
+    const readFileSpy = jest.spyOn(fs, 'readFileSync');
+    const statSpy = jest.spyOn(fs, 'statSync');
     const result = cosmiconfig('foo', {
-      stopDir: absolutePath('.'),
+      stopDir: temp.absolutePath('.'),
       sync: true,
     }).search(startDir);
-    checkResult(fsMock.statSync, readFileMock, result);
+    checkResult(statSpy, readFileSpy, result);
   });
 });
 
 describe('stops at stopDir and gives up', () => {
-  const startDir = absolutePath('a/b');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/package.json'):
-      case absolutePath('a/b/.foorc'):
-      case absolutePath('a/b/foo.config.js'):
-      case absolutePath('a/package.json'):
-      case absolutePath('a/.foorc'):
-      case absolutePath('a/foo.config.js'):
-      case absolutePath('/package.json'):
-      case absolutePath('/.foorc'):
-      case absolutePath('/foo.config.js'):
-        throw { code: 'ENOENT' };
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  const startDir = temp.absolutePath('a/b');
 
-  const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+  const checkResult = (readFileSpy, result) => {
+    util.assertSearchSequence(readFileSpy, temp.dir, [
       'a/b/package.json',
       'a/b/.foorc',
       'a/b/foo.config.js',
@@ -119,58 +83,51 @@ describe('stops at stopDir and gives up', () => {
   };
 
   test('async', () => {
-    const readFileMock = mockReadFile(false, readFile);
+    const readFileSpy = jest.spyOn(fs, 'readFile');
     return cosmiconfig('foo', {
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
     })
       .search(startDir)
       .then(result => {
-        checkResult(readFileMock, result);
+        checkResult(readFileSpy, result);
       });
   });
 
   test('sync', () => {
-    const readFileMock = mockReadFile(true, readFile);
+    const readFileSpy = jest.spyOn(fs, 'readFileSync');
     const result = cosmiconfig('foo', {
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
       sync: true,
     }).search(startDir);
-    checkResult(readFileMock, result);
+    checkResult(readFileSpy, result);
   });
 });
 
 describe('throws error for invalid YAML in rc file', () => {
-  const startDir = absolutePath('a/b');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/package.json'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/.foorc'):
-        return 'found: true: broken';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  beforeEach(() => {
+    temp.createFile('a/b/.foorc', 'found: true: broken');
+  });
+
+  const startDir = temp.absolutePath('a/b');
 
   const checkError = error => {
     expect(error.name).toBe('YAMLException');
   };
 
   test('async', () => {
-    mockReadFile(false, readFile);
     expect.hasAssertions();
-    return cosmiconfig('foo', { stopDir: absolutePath('a') })
+    return cosmiconfig('foo', { stopDir: temp.absolutePath('a') })
       .search(startDir)
       .catch(checkError);
   });
 
   test('sync', () => {
-    mockReadFile(true, readFile);
     expect.hasAssertions();
     try {
-      cosmiconfig('foo', { stopDir: absolutePath('a'), sync: true }).search(
-        startDir
-      );
+      cosmiconfig('foo', {
+        stopDir: temp.absolutePath('a'),
+        sync: true,
+      }).search(startDir);
     } catch (error) {
       checkError(error);
     }
@@ -178,40 +135,32 @@ describe('throws error for invalid YAML in rc file', () => {
 });
 
 describe('throws error for invalid JSON in rc file with rcStrictJson', () => {
-  const startDir = absolutePath('a/b');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/package.json'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/.foorc'):
-        return 'found: true: broken';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  beforeEach(() => {
+    temp.createFile('a/b/.foorc', 'found: true: broken');
+  });
+
+  const startDir = temp.absolutePath('a/b');
 
   const checkError = error => {
     expect(error.name).toMatch(/JSONError/);
   };
 
   test('async', () => {
-    mockReadFile(false, readFile);
     expect.hasAssertions();
     return cosmiconfig('foo', {
       rcStrictJson: true,
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
     })
       .search(startDir)
       .catch(checkError);
   });
 
   test('sync', () => {
-    mockReadFile(true, readFile);
     expect.hasAssertions();
     try {
       cosmiconfig('foo', {
         rcStrictJson: true,
-        stopDir: absolutePath('a'),
+        stopDir: temp.absolutePath('a'),
         sync: true,
       }).search(startDir);
     } catch (error) {
@@ -221,36 +170,30 @@ describe('throws error for invalid JSON in rc file with rcStrictJson', () => {
 });
 
 describe('throws error for invalid package.json', () => {
-  const startDir = absolutePath('a/b');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/package.json'):
-        return '{ "foo": "bar", }';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  beforeEach(() => {
+    temp.createFile('a/b/package.json', '{ "foo": "bar", }');
+  });
+
+  const startDir = temp.absolutePath('a/b');
 
   const checkError = error => {
     expect(error.name).toMatch(/JSONError/);
   };
 
   test('async', () => {
-    mockReadFile(false, readFile);
     expect.hasAssertions();
     return cosmiconfig('foo', {
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
     })
       .search(startDir)
       .catch(checkError);
   });
 
   test('sync', () => {
-    mockReadFile(true, readFile);
     expect.hasAssertions();
     try {
       cosmiconfig('foo', {
-        stopDir: absolutePath('a'),
+        stopDir: temp.absolutePath('a'),
         sync: true,
       }).search(startDir);
     } catch (error) {
@@ -260,39 +203,33 @@ describe('throws error for invalid package.json', () => {
 });
 
 describe('throws error for invalid JS in .config.js file', () => {
-  const startDir = absolutePath('a/b');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/package.json'):
-      case absolutePath('a/b/.foorc'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/foo.config.js'):
-        return 'module.exports = { found: true: false,';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  beforeEach(() => {
+    temp.createFile(
+      'a/b/foo.config.js',
+      'module.exports = { found: true: false,'
+    );
+  });
+
+  const startDir = temp.absolutePath('a/b');
 
   const checkError = error => {
     expect(error.name).toBe('SyntaxError');
   };
 
   test('async', () => {
-    mockReadFile(false, readFile);
     expect.hasAssertions();
     return cosmiconfig('foo', {
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
     })
       .search(startDir)
       .catch(checkError);
   });
 
   test('sync', () => {
-    mockReadFile(true, readFile);
     expect.hasAssertions();
     try {
       cosmiconfig('foo', {
-        stopDir: absolutePath('a'),
+        stopDir: temp.absolutePath('a'),
         sync: true,
       }).search(startDir);
     } catch (error) {
@@ -302,41 +239,32 @@ describe('throws error for invalid JS in .config.js file', () => {
 });
 
 describe('with rcExtensions, throws error for invalid JSON in .foorc.json', () => {
-  const startDir = absolutePath('a/b/c/d/e/f');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/c/d/e/f/package.json'):
-      case absolutePath('a/b/c/d/e/f/.foorc'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/c/d/e/f/.foorc.json'):
-        return '{ "found": true,, }';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  beforeEach(() => {
+    temp.createFile('a/b/c/d/e/f/.foorc.json', '{ "found": true,, }');
+  });
+
+  const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkError = error => {
     expect(error.message).toMatch(/JSON Error/);
   };
 
   test('async', () => {
-    mockReadFile(false, readFile);
     expect.hasAssertions();
     return cosmiconfig('foo', {
       rcExtensions: true,
-      stopDir: absolutePath('.'),
+      stopDir: temp.absolutePath('.'),
     })
       .search(startDir)
       .catch(checkError);
   });
 
   test('sync', () => {
-    mockReadFile(true, readFile);
     expect.hasAssertions();
     try {
       cosmiconfig('foo', {
         rcExtensions: true,
-        stopDir: absolutePath('.'),
+        stopDir: temp.absolutePath('.'),
         sync: true,
       }).search(startDir);
     } catch (error) {
@@ -346,43 +274,32 @@ describe('with rcExtensions, throws error for invalid JSON in .foorc.json', () =
 });
 
 describe('with rcExtensions, throws error for invalid YAML in .foorc.yml', () => {
-  const startDir = absolutePath('a/b/c/d/e/f');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/c/d/e/f/package.json'):
-      case absolutePath('a/b/c/d/e/f/.foorc'):
-      case absolutePath('a/b/c/d/e/f/.foorc.json'):
-      case absolutePath('a/b/c/d/e/f/.foorc.yaml'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/c/d/e/f/.foorc.yml'):
-        return 'found: thing: true';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  beforeEach(() => {
+    temp.createFile('a/b/c/d/e/f/.foorc.yml', 'found: thing: true');
+  });
+
+  const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkError = error => {
     expect(error.name).toBe('YAMLException');
   };
 
   test('async', () => {
-    mockReadFile(false, readFile);
     expect.hasAssertions();
     return cosmiconfig('foo', {
       rcExtensions: true,
-      stopDir: absolutePath('.'),
+      stopDir: temp.absolutePath('.'),
     })
       .search(startDir)
       .catch(checkError);
   });
 
   test('sync', () => {
-    mockReadFile(true, readFile);
     expect.hasAssertions();
     try {
       cosmiconfig('foo', {
         rcExtensions: true,
-        stopDir: absolutePath('.'),
+        stopDir: temp.absolutePath('.'),
         sync: true,
       }).search(startDir);
     } catch (error) {
@@ -392,44 +309,32 @@ describe('with rcExtensions, throws error for invalid YAML in .foorc.yml', () =>
 });
 
 describe('with rcExtensions, throws error for invalid JS in .foorc.js', () => {
-  const startDir = absolutePath('a/b/c/d/e/f');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/c/d/e/f/package.json'):
-      case absolutePath('a/b/c/d/e/f/.foorc'):
-      case absolutePath('a/b/c/d/e/f/.foorc.json'):
-      case absolutePath('a/b/c/d/e/f/.foorc.yaml'):
-      case absolutePath('a/b/c/d/e/f/.foorc.yml'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/c/d/e/f/.foorc.js'):
-        return 'module.exports = found: true };';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  beforeEach(() => {
+    temp.createFile('a/b/c/d/e/f/.foorc.js', 'module.exports = found: true };');
+  });
+
+  const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkError = error => {
     expect(error.name).toBe('SyntaxError');
   };
 
   test('async', () => {
-    mockReadFile(false, readFile);
     expect.hasAssertions();
     return cosmiconfig('foo', {
       rcExtensions: true,
-      stopDir: absolutePath('.'),
+      stopDir: temp.absolutePath('.'),
     })
       .search(startDir)
       .catch(checkError);
   });
 
   test('sync', () => {
-    mockReadFile(true, readFile);
     expect.hasAssertions();
     try {
       cosmiconfig('foo', {
         rcExtensions: true,
-        stopDir: absolutePath('.'),
+        stopDir: temp.absolutePath('.'),
         sync: true,
       }).search(startDir);
     } catch (error) {
@@ -439,37 +344,29 @@ describe('with rcExtensions, throws error for invalid JS in .foorc.js', () => {
 });
 
 describe('with ignoreEmpty: false, returns an empty config result for an empty rc file', () => {
-  const startDir = absolutePath('a/b');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/package.json'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/.foorc'):
-        return '';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  beforeEach(() => {
+    temp.createFile('a/b/.foorc', '');
+  });
+
+  const startDir = temp.absolutePath('a/b');
 
   const checkResult = result => {
     expect(result).toEqual({
       config: undefined,
-      filepath: absolutePath('a/b/.foorc'),
+      filepath: temp.absolutePath('a/b/.foorc'),
       isEmpty: true,
     });
   };
 
   test('async', () => {
-    mockReadFile(false, readFile);
-    return cosmiconfig('foo', { stopDir: absolutePath('a') })
+    return cosmiconfig('foo', { stopDir: temp.absolutePath('a') })
       .search(startDir, { ignoreEmpty: false })
       .then(checkResult);
   });
 
   test('sync', () => {
-    mockReadFile(true, readFile);
     const result = cosmiconfig('foo', {
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
       sync: true,
     }).search(startDir, { ignoreEmpty: false });
     checkResult(result);
@@ -477,38 +374,29 @@ describe('with ignoreEmpty: false, returns an empty config result for an empty r
 });
 
 describe('with ignoreEmpty: false, returns an empty config result for an empty .config.js file', () => {
-  const startDir = absolutePath('a/b');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/package.json'):
-      case absolutePath('a/b/.foorc'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/foo.config.js'):
-        return '';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  beforeEach(() => {
+    temp.createFile('a/b/foo.config.js', '');
+  });
+
+  const startDir = temp.absolutePath('a/b');
 
   const checkResult = result => {
     expect(result).toEqual({
       config: undefined,
-      filepath: absolutePath('a/b/foo.config.js'),
+      filepath: temp.absolutePath('a/b/foo.config.js'),
       isEmpty: true,
     });
   };
 
   test('async', () => {
-    mockReadFile(false, readFile);
-    return cosmiconfig('foo', { stopDir: absolutePath('a') })
+    return cosmiconfig('foo', { stopDir: temp.absolutePath('a') })
       .search(startDir, { ignoreEmpty: false })
       .then(checkResult);
   });
 
   test('sync', () => {
-    mockReadFile(true, readFile);
     const result = cosmiconfig('foo', {
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
       sync: true,
     }).search(startDir, { ignoreEmpty: false });
     checkResult(result);
@@ -516,45 +404,33 @@ describe('with ignoreEmpty: false, returns an empty config result for an empty .
 });
 
 describe('with ignoreEmtpy and rcExtensions, returns an empty config result for an empty .json rc file', () => {
-  const startDir = absolutePath('a/b/c/d/e/f');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/c/d/e/f/package.json'):
-      case absolutePath('a/b/c/d/e/f/.foorc'):
-      case absolutePath('a/b/c/d/e/f/.foorc.yaml'):
-      case absolutePath('a/b/c/d/e/f/.foorc.yml'):
-      case absolutePath('a/b/c/d/e/f/.foorc.js'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/c/d/e/f/.foorc.json'):
-        return '';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  beforeEach(() => {
+    temp.createFile('a/b/c/d/e/f/.foorc.json', '');
+  });
+
+  const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkResult = result => {
     expect(result).toEqual({
       config: undefined,
-      filepath: absolutePath('a/b/c/d/e/f/.foorc.json'),
+      filepath: temp.absolutePath('a/b/c/d/e/f/.foorc.json'),
       isEmpty: true,
     });
   };
 
   test('async', () => {
-    mockReadFile(false, readFile);
     return cosmiconfig('foo', {
       rcExtensions: true,
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
     })
       .search(startDir, { ignoreEmpty: false })
       .then(checkResult);
   });
 
   test('sync', () => {
-    mockReadFile(true, readFile);
     const result = cosmiconfig('foo', {
       rcExtensions: true,
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
       sync: true,
     }).search(startDir, { ignoreEmpty: false });
     checkResult(result);
@@ -562,45 +438,33 @@ describe('with ignoreEmtpy and rcExtensions, returns an empty config result for 
 });
 
 describe('with ignoreEmtpy and rcExtensions, returns an empty config result for an empty .yaml rc file', () => {
-  const startDir = absolutePath('a/b/c/d/e/f');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/c/d/e/f/package.json'):
-      case absolutePath('a/b/c/d/e/f/.foorc'):
-      case absolutePath('a/b/c/d/e/f/.foorc.json'):
-      case absolutePath('a/b/c/d/e/f/.foorc.yml'):
-      case absolutePath('a/b/c/d/e/f/.foorc.js'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/c/d/e/f/.foorc.yaml'):
-        return '';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  beforeEach(() => {
+    temp.createFile('a/b/c/d/e/f/.foorc.yaml', '');
+  });
+
+  const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkResult = result => {
     expect(result).toEqual({
       config: undefined,
-      filepath: absolutePath('a/b/c/d/e/f/.foorc.yaml'),
+      filepath: temp.absolutePath('a/b/c/d/e/f/.foorc.yaml'),
       isEmpty: true,
     });
   };
 
   test('async', () => {
-    mockReadFile(false, readFile);
     return cosmiconfig('foo', {
       rcExtensions: true,
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
     })
       .search(startDir, { ignoreEmpty: false })
       .then(checkResult);
   });
 
   test('sync', () => {
-    mockReadFile(true, readFile);
     const result = cosmiconfig('foo', {
       rcExtensions: true,
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
       sync: true,
     }).search(startDir, { ignoreEmpty: false });
     checkResult(result);
@@ -608,45 +472,33 @@ describe('with ignoreEmtpy and rcExtensions, returns an empty config result for 
 });
 
 describe('with ignoreEmtpy and rcExtensions, returns an empty config result for an empty .js rc file', () => {
-  const startDir = absolutePath('a/b/c/d/e/f');
-  const readFile = searchPath => {
-    switch (searchPath) {
-      case absolutePath('a/b/c/d/e/f/package.json'):
-      case absolutePath('a/b/c/d/e/f/.foorc'):
-      case absolutePath('a/b/c/d/e/f/.foorc.json'):
-      case absolutePath('a/b/c/d/e/f/.foorc.yml'):
-      case absolutePath('a/b/c/d/e/f/.foorc.yaml'):
-        throw { code: 'ENOENT' };
-      case absolutePath('a/b/c/d/e/f/.foorc.js'):
-        return '';
-      default:
-        throw new Error(`irrelevant path ${searchPath}`);
-    }
-  };
+  beforeEach(() => {
+    temp.createFile('a/b/c/d/e/f/.foorc.js', '');
+  });
+
+  const startDir = temp.absolutePath('a/b/c/d/e/f');
 
   const checkResult = result => {
     expect(result).toEqual({
       config: undefined,
-      filepath: absolutePath('a/b/c/d/e/f/.foorc.js'),
+      filepath: temp.absolutePath('a/b/c/d/e/f/.foorc.js'),
       isEmpty: true,
     });
   };
 
   test('async', () => {
-    mockReadFile(false, readFile);
     return cosmiconfig('foo', {
       rcExtensions: true,
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
     })
       .search(startDir, { ignoreEmpty: false })
       .then(checkResult);
   });
 
   test('sync', () => {
-    mockReadFile(true, readFile);
     const result = cosmiconfig('foo', {
       rcExtensions: true,
-      stopDir: absolutePath('a'),
+      stopDir: temp.absolutePath('a'),
       sync: true,
     }).search(startDir, { ignoreEmpty: false });
     checkResult(result);
