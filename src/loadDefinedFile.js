@@ -2,16 +2,17 @@
 'use strict';
 
 const yaml = require('js-yaml');
-const requireJs = require('./requireJs');
 const readFile = require('./readFile');
 const parseJson = require('./parseJson');
 const path = require('path');
 
 module.exports = function loadDefinedFile(
   filepath: string,
+  jsLoader: string => ?Object,
   options: {
     sync?: boolean,
     format?: 'json' | 'yaml' | 'js',
+    loadJs: string => ?Object,
   }
 ): Promise<?cosmiconfig$Result> | ?cosmiconfig$Result {
   function parseContent(content: ?string): ?cosmiconfig$Result {
@@ -31,10 +32,10 @@ module.exports = function loadDefinedFile(
         });
         break;
       case 'js':
-        parsedConfig = requireJs(filepath);
+        parsedConfig = jsLoader(filepath);
         break;
       default:
-        parsedConfig = tryAllParsing(content, filepath);
+        parsedConfig = tryAllParsing(content, filepath, jsLoader);
     }
 
     if (!parsedConfig) {
@@ -67,9 +68,9 @@ function inferFormat(filepath: string): ?string {
   }
 }
 
-function tryAllParsing(content: string, filepath: string): ?Object {
+function tryAllParsing(content: string, filepath: string, jsLoader): ?Object {
   return tryYaml(content, filepath, () => {
-    return tryRequire(content, filepath, () => {
+    return tryRequire(content, filepath, jsLoader, () => {
       return null;
     });
   });
@@ -89,10 +90,15 @@ function tryYaml(content: string, filepath: string, cb: () => ?Object) {
   }
 }
 
-function tryRequire(content: string, filepath: string, cb: () => ?Object) {
+function tryRequire(
+  content: string,
+  filepath: string,
+  jsLoader,
+  cb: () => ?Object
+) {
   try {
     // TODO: Might not be tested with a successful load
-    return requireJs(filepath);
+    return jsLoader(filepath);
   } catch (e) {
     return cb();
   }

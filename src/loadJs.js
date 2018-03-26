@@ -1,18 +1,20 @@
 // @flow
 'use strict';
 
-const requireJs = require('./requireJs');
 const readFile = require('./readFile');
 const createParseFile = require('./createParseFile');
 
-function requireJsWrapper(content, filePath) {
-  return requireJs(filePath);
-}
-
 module.exports = function loadJs(
   filepath: string,
+  jsLoader: string => ?Object,
   options: { ignoreEmpty: boolean, sync?: boolean }
 ): Promise<?cosmiconfig$Result> | ?cosmiconfig$Result {
+  function requireJsWrapper(content, filePath) {
+    const config = jsLoader(filePath);
+
+    return config;
+  }
+
   const parseJsFile = createParseFile(
     filepath,
     requireJsWrapper,

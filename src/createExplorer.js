@@ -5,6 +5,7 @@ const path = require('path');
 const loadPackageProp = require('./loadPackageProp');
 const loadRc = require('./loadRc');
 const loadJs = require('./loadJs');
+const requireJs = require('./requireJs');
 const loadDefinedFile = require('./loadDefinedFile');
 const funcRunner = require('./funcRunner');
 const getDirectory = require('./getDirectory');
@@ -21,6 +22,7 @@ module.exports = function createExplorer(options: {
   sync?: boolean,
   transform?: (?Object) => ?Object,
   configPath?: string,
+  loadJs?: string => ?Object,
 }) {
   // When `options.sync` is `false` (default),
   // these cache Promises that resolve with results, not the results themselves.
@@ -28,6 +30,7 @@ module.exports = function createExplorer(options: {
   const searchCache = options.cache ? new Map() : null;
   const transform = options.transform || identity;
   const packageProp = options.packageProp;
+  const jsLoader = options.loadJs || requireJs;
 
   function clearLoadCache() {
     if (loadCache) loadCache.clear();
@@ -99,7 +102,7 @@ module.exports = function createExplorer(options: {
       },
       result => {
         if (result || !options.js) return result;
-        return loadJs(path.join(directory, options.js), {
+        return loadJs(path.join(directory, options.js), jsLoader, {
           ignoreEmpty: searchOptions.ignoreEmpty,
           sync: options.sync,
         });
@@ -157,7 +160,7 @@ module.exports = function createExplorer(options: {
         });
     } else {
       loadIt = () =>
-        loadDefinedFile(absoluteConfigPath, {
+        loadDefinedFile(absoluteConfigPath, jsLoader, {
           sync: options.sync,
           format: options.format,
         });

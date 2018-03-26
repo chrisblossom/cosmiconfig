@@ -20,6 +20,7 @@ module.exports = function cosmiconfig(
     sync?: boolean,
     transform?: (?Object) => ?Object,
     configPath?: string,
+    loadJs?: (string, ?Object) => ?Object,
   }
 ) {
   options = Object.assign(
