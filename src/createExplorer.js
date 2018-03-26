@@ -83,39 +83,95 @@ module.exports = function createExplorer(options: ExplorerOptions) {
     return searchDirectorySync(dir, searchOptions);
   }
 
+  const tryLoadingPackageJsonProp = args => () => {
+    const sync = args.sync;
+    const directory = args.directory;
+
+    if (options.packageProp === false) {
+      return null;
+    }
+
+    return sync === false
+      ? loader.loadPackageProp(directory, packageProp)
+      : loader.loadPackagePropSync(directory, packageProp);
+  };
+
+  const tryLoadingRcFile = args => () => {
+    const sync = args.sync;
+    const directory = args.directory;
+    const searchOptions = args.searchOptions;
+
+    if (options.rc === false) {
+      return null;
+    }
+
+    const filePath = path.join(directory, options.rc);
+    const opts = {
+      strictJson: options.rcStrictJson,
+      extensions: options.rcExtensions,
+      ignoreEmpty: searchOptions.ignoreEmpty,
+    };
+
+    return sync === false
+      ? loader.loadRcFile(filePath, opts)
+      : loader.loadRcFileSync(filePath, opts);
+  };
+
+  const tryLoadingJsFile = args => () => {
+    const sync = args.sync;
+    const directory = args.directory;
+
+    if (options.js === false) {
+      return null;
+    }
+
+    const filePath = path.join(directory, options.js);
+
+    return sync === false
+      ? loader.loadJsFile(filePath)
+      : loader.loadJsFileSync(filePath);
+  };
+
+  const tryNextDirectory = args => () => {
+    const sync = args.sync;
+    const directory = args.directory;
+    const searchOptions = args.searchOptions;
+
+    const nextDirectory = path.dirname(directory);
+    if (nextDirectory === directory || directory === options.stopDir) {
+      return null;
+    }
+
+    return sync === false
+      ? searchDirectory(nextDirectory, searchOptions)
+      : searchDirectorySync(nextDirectory, searchOptions);
+  };
+
+  const getSeries = args => {
+    const sync = args.sync;
+    const directory = args.directory;
+    const searchOptions = args.searchOptions;
+
+    return [
+      tryLoadingPackageJsonProp({ sync, directory }),
+      tryLoadingRcFile({ sync, directory, searchOptions }),
+      tryLoadingJsFile({ sync, directory }),
+      tryNextDirectory({ sync, directory, searchOptions }),
+    ];
+  };
+
   function searchDirectory(
     directory: string,
     searchOptions: SearchOptions
   ): Promise<CosmiconfigResult> {
     return cacheWrapper(searchCache, directory, () => {
-      const resultPromise = loaderSeries(
-        [
-          () => {
-            if (!packageProp) return null;
-            return loader.loadPackageProp(directory, packageProp);
-          },
-          () => {
-            if (!options.rc) return null;
-            return loader.loadRcFile(path.join(directory, options.rc), {
-              strictJson: options.rcStrictJson,
-              extensions: options.rcExtensions,
-              ignoreEmpty: searchOptions.ignoreEmpty,
-            });
-          },
-          () => {
-            if (!options.js) return null;
-            return loader.loadJsFile(path.join(directory, options.js));
-          },
-          () => {
-            const nextDirectory = path.dirname(directory);
-            if (nextDirectory === directory || directory === options.stopDir) {
-              return null;
-            }
-            return searchDirectory(nextDirectory, searchOptions);
-          },
-        ],
-        { ignoreEmpty: searchOptions.ignoreEmpty }
-      );
+      const sync = false;
+
+      const series = getSeries({ sync, directory, searchOptions });
+
+      const resultPromise = loaderSeries(series, {
+        ignoreEmpty: searchOptions.ignoreEmpty,
+      });
 
       return resultPromise.then(transform);
     });
@@ -126,34 +182,13 @@ module.exports = function createExplorer(options: ExplorerOptions) {
     searchOptions: SearchOptions
   ): CosmiconfigResult {
     return cacheWrapper(searchSyncCache, directory, () => {
-      const rawResult = loaderSeries.sync(
-        [
-          () => {
-            if (!packageProp) return null;
-            return loader.loadPackagePropSync(directory, packageProp);
-          },
-          () => {
-            if (!options.rc) return null;
-            return loader.loadRcFileSync(path.join(directory, options.rc), {
-              strictJson: options.rcStrictJson,
-              extensions: options.rcExtensions,
-              ignoreEmpty: searchOptions.ignoreEmpty,
-            });
-          },
-          () => {
-            if (!options.js) return null;
-            return loader.loadJsFileSync(path.join(directory, options.js));
-          },
-          () => {
-            const nextDirectory = path.dirname(directory);
-            if (nextDirectory === directory || directory === options.stopDir) {
-              return null;
-            }
-            return searchDirectorySync(nextDirectory, searchOptions);
-          },
-        ],
-        { ignoreEmpty: searchOptions.ignoreEmpty }
-      );
+      const sync = true;
+
+      const series = getSeries({ sync, directory, searchOptions });
+
+      const rawResult = loaderSeries.sync(series, {
+        ignoreEmpty: searchOptions.ignoreEmpty,
+      });
 
       return transform(rawResult);
     });

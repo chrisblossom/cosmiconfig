@@ -30,7 +30,9 @@ loaderSeries.sync = function loaderSeriesSync(
   let result = null;
   for (const loader of loaders) {
     result = loader(result);
-    if (!tryNextLoader(result, options)) break;
+    if (!tryNextLoader(result, options)) {
+      return result;
+    }
   }
   return result;
 };
