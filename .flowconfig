@@ -1,5 +1,8 @@
 [ignore]
 .*/test/fixtures/.*
+.*/dist/.*
+.*/coverage/.*
+.*/test/.*
 
 [include]
 
