@@ -4,35 +4,33 @@
 const os = require('os');
 const createExplorer = require('./createExplorer');
 
-const homedir = os.homedir();
+type Options = {
+  packageProp?: string | false,
+  rc?: string | false,
+  js?: string | false,
+  rcStrictJson?: boolean,
+  rcExtensions?: boolean,
+  stopDir?: string,
+  cache?: boolean,
+  transform?: CosmiconfigResult => CosmiconfigResult,
+  configPath?: string,
+};
 
-module.exports = function cosmiconfig(
-  moduleName: string,
-  options: {
-    packageProp?: string | false,
-    rc?: string | false,
-    js?: string | false,
-    rcStrictJson?: boolean,
-    rcExtensions?: boolean,
-    stopDir?: string,
-    cache?: boolean,
-    transform?: CosmiconfigResult => CosmiconfigResult,
-    configPath?: string,
-  }
-) {
-  const x: ExplorerOptions = Object.assign(
-    {},
+function cosmiconfig(moduleName: string, options: Options) {
+  const optionsWithDefaults: ExplorerOptions = Object.assign(
     {
       packageProp: moduleName,
       rc: `.${moduleName}rc`,
       js: `${moduleName}.config.js`,
       rcStrictJson: false,
       rcExtensions: false,
-      stopDir: homedir,
+      stopDir: os.homedir(),
       cache: true,
     },
     options
   );
 
-  return createExplorer(x);
-};
+  return createExplorer(optionsWithDefaults);
+}
+
+module.exports = cosmiconfig;
