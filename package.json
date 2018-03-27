@@ -8,13 +8,14 @@
   ],
   "scripts": {
     "clean": "del ./dist/*",
-    "build": "npm run clean && concurrently \"npm run build.babel\" \"npm run build.flow\"",
-    "build.babel": "NODE_ENV=production babel src/ -d dist/ --source-maps",
-    "build.flow": "NODE_ENV=production flow-copy-source src/ dist/",
-    "dev": "npm run clean && concurrently \"npm run dev.babel\" \"npm run dev.flow\"",
-    "dev.babel": "NODE_ENV=development babel -w src/ -d dist/ --source-maps",
-    "dev.flow": "NODE_ENV=development flow-copy-source -w src/ dist/",
-    "precommit": "lint-staged && jest && flow check",
+    "build": "npm run clean && concurrently \"npm run build:babel\" \"npm run build:flow\"",
+    "build:babel": "NODE_ENV=production babel src/ -d dist/ --source-maps",
+    "build:flow": "NODE_ENV=production flow-copy-source src/ dist/",
+    "dev": "npm run clean && concurrently \"npm run dev:babel\" \"npm run dev:flow\"",
+    "dev:babel": "NODE_ENV=development babel -w src/ -d dist/ --source-maps",
+    "dev:flow": "NODE_ENV=development flow-copy-source -w src/ dist/",
+    "precommit": "lint-staged",
+    "prepush": "jest && flow check",
     "lint:md-partial": "remark -u remark-preset-davidtheclark --frail --quiet --no-stdout --output --",
     "lint:md": "npm run lint:md-partial -- *.md",
     "lint:fix": "eslint . --fix",
@@ -24,7 +25,7 @@
     "test": "jest --coverage",
     "test:watch": "jest --watch",
     "coverage": "jest --coverage --coverageReporters=html --coverageReporters=text",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run test && npm run build"
   },
   "lint-staged": {
     "*.js": [

@@ -1,7 +1,8 @@
 {
   "parser": "babel-eslint",
   "parserOptions": {
-    "sourceType": "script"
+    "sourceType": "module",
+    "impliedStrict": true
   },
   "extends": [
     "eslint-config-davidtheclark-node",
