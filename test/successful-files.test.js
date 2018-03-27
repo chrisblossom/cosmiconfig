@@ -1,9 +1,5 @@
-'use strict';
-
-const util = require('./util');
-const cosmiconfig = require('../src');
-
-const absolutePath = util.absolutePath;
+import cosmiconfig from '../src';
+import { absolutePath } from './util';
 
 describe('loads defined JSON config path', () => {
   const file = absolutePath('fixtures/foo.json');

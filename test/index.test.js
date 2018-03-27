@@ -1,13 +1,10 @@
-'use strict';
+import os from 'os';
+import path from 'path';
+import cosmiconfig from '../src';
+import { createExplorer as createExplorerMock } from '../src/createExplorer';
 
 // Mock `createExplorer` because we want to check what it is called with.
 jest.mock('../src/createExplorer');
-
-const os = require('os');
-const path = require('path');
-const cosmiconfig = require('../src');
-
-const createExplorerMock = require('../src/createExplorer');
 
 describe('cosmiconfig', () => {
   const moduleName = 'foo';

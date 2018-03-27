@@ -1,10 +1,6 @@
-'use strict';
-
-const path = require('path');
-const util = require('./util');
-const cosmiconfig = require('../src');
-
-const absolutePath = util.absolutePath;
+import path from 'path';
+import { absolutePath } from './util';
+import cosmiconfig from '../src';
 
 describe('throws error if defined file does not exist', () => {
   const file = absolutePath('does/not/exist');

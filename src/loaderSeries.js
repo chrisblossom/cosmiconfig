@@ -1,5 +1,6 @@
 // @flow
-'use strict';
+
+import type { CosmiconfigResult } from './types';
 
 function tryNextLoader(
   prevResult: CosmiconfigResult,
@@ -37,4 +38,4 @@ loaderSeries.sync = function loaderSeriesSync(
   return result;
 };
 
-module.exports = loaderSeries;
+export { loaderSeries };

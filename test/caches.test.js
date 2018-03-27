@@ -1,14 +1,13 @@
-'use strict';
+import fsMock from 'fs';
+import cosmiconfig from '../src';
+import {
+  absolutePath,
+  assertSearchSequence,
+  makeReadFileMockImpl,
+  mockStatIsDirectory,
+} from './util';
 
 jest.mock('fs');
-
-const fsMock = require('fs');
-
-const util = require('./util');
-const cosmiconfig = require('../src');
-
-const absolutePath = util.absolutePath;
-const mockStatIsDirectory = util.mockStatIsDirectory;
 
 beforeAll(() => {
   function readFile(searchPath) {
@@ -38,7 +37,7 @@ beforeAll(() => {
 
   jest
     .spyOn(fsMock, 'readFile')
-    .mockImplementation(util.makeReadFileMockImpl(readFile));
+    .mockImplementation(makeReadFileMockImpl(readFile));
   jest.spyOn(fsMock, 'readFileSync').mockImplementation(readFile);
 });
 
@@ -64,7 +63,7 @@ afterAll(() => {
 describe('cache is not used initially', () => {
   const searchPath = absolutePath('a/b/c/d/e');
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/package.json',
       'a/b/c/d/e/.foorc',
       'a/b/c/d/e/foo.config.js',
@@ -171,7 +170,7 @@ describe('cache is used when some directories in search are already visted', () 
   const firstSearchPath = absolutePath('a/b/c/d/e');
   const secondSearchPath = absolutePath('a/b/c/d/e/f');
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/foo.config.js',
@@ -253,7 +252,7 @@ describe('cache is not used when directly loading an unvisited file', () => {
 describe('cache is not used in a new cosmiconfig instance', () => {
   const searchPath = absolutePath('a/b/c/d/e');
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/package.json',
       'a/b/c/d/e/.foorc',
       'a/b/c/d/e/foo.config.js',
@@ -293,7 +292,7 @@ describe('cache is not used in a new cosmiconfig instance', () => {
 describe('clears file cache on calling clearLoadCache', () => {
   const loadPath = absolutePath('a/b/c/d/.foorc');
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, ['a/b/c/d/.foorc']);
+    assertSearchSequence(readFileMock, ['a/b/c/d/.foorc']);
     expect(result).toEqual({
       filepath: absolutePath('a/b/c/d/.foorc'),
       config: { foundInD: true },
@@ -331,7 +330,7 @@ describe('clears file cache on calling clearLoadCache', () => {
 describe('clears file cache on calling clearCaches', () => {
   const loadPath = absolutePath('a/b/c/d/.foorc');
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, ['a/b/c/d/.foorc']);
+    assertSearchSequence(readFileMock, ['a/b/c/d/.foorc']);
     expect(result).toEqual({
       filepath: absolutePath('a/b/c/d/.foorc'),
       config: { foundInD: true },
@@ -369,7 +368,7 @@ describe('clears file cache on calling clearCaches', () => {
 describe('clears directory cache on calling clearSearchCache', () => {
   const searchPath = absolutePath('a/b/c/d/e');
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/package.json',
       'a/b/c/d/e/.foorc',
       'a/b/c/d/e/foo.config.js',
@@ -413,7 +412,7 @@ describe('clears directory cache on calling clearSearchCache', () => {
 describe('clears directory cache on calling clearCaches', () => {
   const searchPath = absolutePath('a/b/c/d/e');
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/package.json',
       'a/b/c/d/e/.foorc',
       'a/b/c/d/e/foo.config.js',
@@ -473,7 +472,7 @@ describe('with cache disabled', () => {
 describe('with cache disabled, does not cache directory results', () => {
   const searchPath = absolutePath('a/b/c/d/e');
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/package.json',
       'a/b/c/d/e/.foorc',
       'a/b/c/d/e/foo.config.js',
@@ -515,7 +514,7 @@ describe('with cache disabled, does not cache directory results', () => {
 describe('with cache disabled, does not cache file results', () => {
   const loadPath = absolutePath('a/b/c/d/.foorc');
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, ['a/b/c/d/.foorc']);
+    assertSearchSequence(readFileMock, ['a/b/c/d/.foorc']);
     expect(result).toEqual({
       filepath: absolutePath('a/b/c/d/.foorc'),
       config: { foundInD: true },

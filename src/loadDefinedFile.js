@@ -1,9 +1,9 @@
 // @flow
-'use strict';
 
-const path = require('path');
-const readFile = require('./readFile');
-const parser = require('./parser');
+import path from 'path';
+import { readFile } from './readFile';
+import * as parser from './parser';
+import type { CosmiconfigResult } from './types';
 
 function parseFileContent(
   content: ?string,
@@ -97,4 +97,4 @@ loadDefinedFile.sync = function loadDefinedFileSync(
   );
 };
 
-module.exports = loadDefinedFile;
+export { loadDefinedFile };

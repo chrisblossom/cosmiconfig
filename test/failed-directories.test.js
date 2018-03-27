@@ -1,17 +1,16 @@
-'use strict';
+import fsMock from 'fs';
+import cosmiconfig from '../src';
+import {
+  absolutePath,
+  assertSearchSequence,
+  mockReadFile,
+  mockStatIsDirectory,
+} from './util';
 
 jest.mock('fs');
 
-const fsMock = require('fs');
-
-const util = require('./util');
-const cosmiconfig = require('../src');
-
-const absolutePath = util.absolutePath;
-const mockReadFile = util.mockReadFile;
-
 beforeAll(() => {
-  util.mockStatIsDirectory(true);
+  mockStatIsDirectory(true);
 });
 
 afterEach(() => {
@@ -54,7 +53,7 @@ describe('gives up if it cannot find the file', () => {
     expect(statMock).toHaveBeenCalledTimes(1);
     expect(statMock.mock.calls[0][0]).toBe(startDir);
 
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/package.json',
       'a/b/.foorc',
       'a/b/foo.config.js',
@@ -106,7 +105,7 @@ describe('stops at stopDir and gives up', () => {
   };
 
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/package.json',
       'a/b/.foorc',
       'a/b/foo.config.js',

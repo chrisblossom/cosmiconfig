@@ -1,17 +1,16 @@
-'use strict';
+import fsMock from 'fs';
+import cosmiconfig from '../src';
+import {
+  absolutePath,
+  assertSearchSequence,
+  mockReadFile,
+  mockStatIsDirectory,
+} from './util';
 
 jest.mock('fs');
 
-const fsMock = require('fs');
-
-const util = require('./util');
-const cosmiconfig = require('../src');
-
-const absolutePath = util.absolutePath;
-const mockReadFile = util.mockReadFile;
-
 beforeAll(() => {
-  util.mockStatIsDirectory(true);
+  mockStatIsDirectory(true);
 });
 
 afterEach(() => {
@@ -52,7 +51,7 @@ describe('finds rc file in third searched dir, with a package.json lacking prop'
   };
 
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/foo.config.js',
@@ -105,7 +104,7 @@ describe('finds package.json prop in second searched dir', () => {
   };
 
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/foo.config.js',
@@ -154,7 +153,7 @@ describe('finds JS file in first searched dir', () => {
   };
 
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/foo.config.js',
@@ -205,7 +204,7 @@ describe('finds package.json in second dir searched, with alternate names', () =
   };
 
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.wowza',
       'a/b/c/d/e/f/wowzaConfig.js',
@@ -260,7 +259,7 @@ describe('finds rc file in third searched dir, skipping packageProp, with rcStri
   };
 
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/foo.config.js',
       'a/b/c/d/e/.foorc',
@@ -313,7 +312,7 @@ describe('finds rc file in third searched dir, skipping JS and RC files, with rc
   };
 
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/package.json',
     ]);
@@ -367,7 +366,7 @@ describe('with rcExtensions, finds .foorc.json in second searched dir', () => {
   };
 
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/.foorc.json',
@@ -423,7 +422,7 @@ describe('with rcExtensions, finds .foorc.yaml in first searched dir', () => {
   };
 
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/.foorc.json',
@@ -474,7 +473,7 @@ describe('with rcExtensions, finds .foorc.yml in first searched dir', () => {
   };
 
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/.foorc.json',
@@ -527,7 +526,7 @@ describe('with rcExtensions, finds .foorc.js in first searched dir', () => {
   };
 
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/.foorc.json',
@@ -587,7 +586,7 @@ describe('finds JS file traversing from cwd', () => {
   };
 
   const checkResult = (readFileMock, result) => {
-    util.assertSearchSequence(readFileMock, [
+    assertSearchSequence(readFileMock, [
       'a/b/c/d/e/f/package.json',
       'a/b/c/d/e/f/.foorc',
       'a/b/c/d/e/f/foo.config.js',

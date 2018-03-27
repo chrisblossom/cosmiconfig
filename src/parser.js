@@ -1,9 +1,8 @@
 // @flow
-'use strict';
 
-const requireFromString = require('require-from-string');
-const parseJsonCore = require('parse-json');
-const yaml = require('js-yaml');
+import requireFromString from 'require-from-string';
+import parseJsonCore from 'parse-json';
+import yaml from 'js-yaml';
 
 function parseJs(content: string, filepath: string): Object {
   return requireFromString(content, filepath);
@@ -33,9 +32,4 @@ function parsePackageFile(
   return packagePropValue || null;
 }
 
-module.exports = {
-  parseJs,
-  parseJson,
-  parseYaml,
-  parsePackageFile,
-};
+export { parseJs, parseJson, parseYaml, parsePackageFile };

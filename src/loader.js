@@ -1,10 +1,10 @@
 // @flow
-'use strict';
 
-const path = require('path');
-const parser = require('./parser');
-const readFile = require('./readFile');
-const loaderSeries = require('./loaderSeries');
+import path from 'path';
+import * as parser from './parser';
+import { readFile } from './readFile';
+import { loaderSeries } from './loaderSeries';
+import type { CosmiconfigResult } from './types';
 
 function fileContentToResult(
   content: string | null,
@@ -161,7 +161,7 @@ function loadRcFileSync(
   return loadRcFileWithoutExtensionsSync(filepath, options);
 }
 
-module.exports = {
+export {
   loadJsFile,
   loadJsFileSync,
   loadJsonFile,

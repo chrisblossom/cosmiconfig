@@ -1,11 +1,9 @@
-'use strict';
+import fsMock from 'fs';
+import path from 'path';
 
-const fsMock = require('fs');
-const path = require('path');
+const absolutePath = str => path.join(__dirname, str);
 
-exports.absolutePath = str => path.join(__dirname, str);
-
-exports.mockStatIsDirectory = function mockStatIsDirectory(result) {
+function mockStatIsDirectory(result) {
   const stats = {
     isDirectory: () => result,
   };
@@ -15,13 +13,9 @@ exports.mockStatIsDirectory = function mockStatIsDirectory(result) {
   });
 
   jest.spyOn(fsMock, 'statSync').mockImplementation(() => stats);
-};
+}
 
-exports.assertSearchSequence = function assertSearchSequence(
-  readFileMock,
-  searchPaths,
-  startCount
-) {
+function assertSearchSequence(readFileMock, searchPaths, startCount) {
   startCount = startCount || 0;
 
   expect(readFileMock).toHaveBeenCalledTimes(searchPaths.length + startCount);
@@ -31,7 +25,7 @@ exports.assertSearchSequence = function assertSearchSequence(
       path.join(__dirname, searchPath)
     );
   });
-};
+}
 
 function makeReadFileMockImpl(readFile) {
   return (searchPath, encoding, callback) => {
@@ -42,9 +36,8 @@ function makeReadFileMockImpl(readFile) {
     }
   };
 }
-exports.makeReadFileMockImpl = makeReadFileMockImpl;
 
-exports.mockReadFile = function mockReadFile(sync, readFile) {
+function mockReadFile(sync, readFile) {
   if (sync === true) {
     return jest.spyOn(fsMock, 'readFileSync').mockImplementation(readFile);
   } else {
@@ -52,4 +45,12 @@ exports.mockReadFile = function mockReadFile(sync, readFile) {
       .spyOn(fsMock, 'readFile')
       .mockImplementation(makeReadFileMockImpl(readFile));
   }
+}
+
+export {
+  absolutePath,
+  mockStatIsDirectory,
+  assertSearchSequence,
+  makeReadFileMockImpl,
+  mockReadFile,
 };

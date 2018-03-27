@@ -1,8 +1,9 @@
 // @flow
-'use strict';
 
-const os = require('os');
-const createExplorer = require('./createExplorer');
+import os from 'os';
+import { createExplorer } from './createExplorer';
+
+import type { CosmiconfigResult, ExplorerOptions } from './types';
 
 type Options = {
   packageProp?: string | false,
@@ -17,18 +18,17 @@ type Options = {
 };
 
 function cosmiconfig(moduleName: string, options: Options) {
-  const optionsWithDefaults: ExplorerOptions = Object.assign(
-    {
-      packageProp: moduleName,
-      rc: `.${moduleName}rc`,
-      js: `${moduleName}.config.js`,
-      rcStrictJson: false,
-      rcExtensions: false,
-      stopDir: os.homedir(),
-      cache: true,
-    },
-    options
-  );
+  const optionsWithDefaults: ExplorerOptions = {
+    packageProp: moduleName,
+    rc: `.${moduleName}rc`,
+    js: `${moduleName}.config.js`,
+    rcStrictJson: false,
+    rcExtensions: false,
+    stopDir: os.homedir(),
+    cache: true,
+
+    ...options,
+  };
 
   return createExplorer(optionsWithDefaults);
 }
