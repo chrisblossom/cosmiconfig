@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { TempDir } from './util';
-import { cosmiconfig, cosmiconfigSync, defaultLoaders } from '../src';
+import { cosmiconfig, cosmiconfigSync } from '../src';
+import { jsonLoader } from '../src/loaders/jsonLoader';
 
 const temp = new TempDir();
 
@@ -347,7 +348,7 @@ describe('finds rc file in third searched dir, skipping packageProp, parsing ext
   const explorerOptions = {
     stopDir: temp.absolutePath('.'),
     loaders: {
-      noExt: defaultLoaders['.json'],
+      noExt: jsonLoader,
     },
     searchPlaces: ['.foorc', 'foo.config.js'],
   };

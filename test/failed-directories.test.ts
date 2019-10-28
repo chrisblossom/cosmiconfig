@@ -1,11 +1,7 @@
 import fs from 'fs';
 import { TempDir } from './util';
-import {
-  cosmiconfig,
-  cosmiconfigSync,
-  defaultLoaders,
-  OptionsSync,
-} from '../src';
+import { cosmiconfig, cosmiconfigSync, OptionsSync } from '../src';
+import { jsonLoader } from '../src/loaders/jsonLoader';
 
 const temp = new TempDir();
 
@@ -147,7 +143,7 @@ describe('throws error for invalid JSON in extensionless rc file loaded as JSON'
   const explorerOptions = {
     stopDir: temp.absolutePath('a'),
     loaders: {
-      noExt: defaultLoaders['.json'],
+      noExt: jsonLoader,
     },
   };
 

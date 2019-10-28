@@ -1,5 +1,4 @@
 import path from 'path';
-import { loaders } from './loaders';
 import { getPropertyByPath } from './getPropertyByPath';
 import {
   CosmiconfigResult,
@@ -87,7 +86,8 @@ class ExplorerBase<T extends ExplorerOptions | ExplorerOptionsSync> {
   }
 
   private loadPackageProp(filepath: string, content: string): unknown {
-    const parsedContent = loaders.loadJson(filepath, content);
+    // TODO: error if no json loader
+    const parsedContent = this.config.loaders['.json'](filepath, content);
     const packagePropValue = getPropertyByPath(
       parsedContent,
       this.config.packageProp,
