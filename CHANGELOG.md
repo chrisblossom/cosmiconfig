@@ -43,7 +43,6 @@
   // ]
   ```
 - Migrate from Flowtype to Typescript.
-- Lazy load all default loaders.
 
 ## 5.2.1
 
