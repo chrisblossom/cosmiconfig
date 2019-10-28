@@ -7,7 +7,11 @@ import {
   Cache,
   LoadedFileContent,
 } from './types';
-import { Loader } from './index';
+import { Loader, LoaderSync } from './index';
+
+function isLoader(loader: unknown): loader is Loader | LoaderSync {
+  return typeof loader === 'function';
+}
 
 class ExplorerBase<T extends ExplorerOptions | ExplorerOptionsSync> {
   protected readonly loadCache?: Cache;
@@ -86,8 +90,9 @@ class ExplorerBase<T extends ExplorerOptions | ExplorerOptionsSync> {
   }
 
   private loadPackageProp(filepath: string, content: string): unknown {
-    // TODO: error if no json loader
-    const parsedContent = this.config.loaders['.json'](filepath, content);
+    const jsonLoader = this.config.loaders['.json'] as Loader | LoaderSync;
+
+    const parsedContent = jsonLoader(filepath, content);
     const packagePropValue = getPropertyByPath(
       parsedContent,
       this.config.packageProp,
@@ -105,7 +110,7 @@ class ExplorerBase<T extends ExplorerOptions | ExplorerOptionsSync> {
 
     const loader = this.config.loaders[loaderKey];
 
-    if (!loader) {
+    if (!isLoader(loader)) {
       throw new Error(
         `No loader specified for ${getExtensionDescription(filepath)}`,
       );

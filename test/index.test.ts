@@ -1,28 +1,13 @@
 /* eslint-disable @typescript-eslint/no-extraneous-class,@typescript-eslint/explicit-member-accessibility */
 import os from 'os';
-import { TempDir } from './util';
+import { TempDir, getLoaderFunctionsByName } from './util';
 import {
   cosmiconfig as cosmiconfigModule,
   cosmiconfigSync as cosmiconfigSyncModule,
   LoaderSync,
 } from '../src';
-import { Loaders } from '../src/types';
 
 const temp = new TempDir();
-
-function getLoaderFunctionsByName(loaders: Loaders) {
-  const loaderFunctionsByName = Object.entries(loaders).reduce(
-    (acc, [extension, loader]) => {
-      return {
-        ...acc,
-        [extension]: loader.name,
-      };
-    },
-    {},
-  );
-
-  return loaderFunctionsByName;
-}
 
 let cosmiconfig: typeof cosmiconfigModule;
 let cosmiconfigSync: typeof cosmiconfigSyncModule;
@@ -226,11 +211,5 @@ describe('cosmiconfig', () => {
         cosmiconfigSync('foo', explorerOptions),
       ).toThrow(expectedError);
     });
-  });
-
-  describe.skip('cannot mutate default loaders', () => {
-    const expectedError = "Cannot delete property '.js' of #<Object>";
-    // @ts-ignore
-    expect(() => delete defaultLoaders['.js']).toThrow(expectedError);
   });
 });

@@ -24,9 +24,9 @@ export type Cache = Map<string, CosmiconfigResult>;
 export type LoadedFileContent = Config | null | undefined;
 
 export interface Loaders {
-  [key: string]: Loader;
+  [key: string]: Loader | unknown;
 }
 
 export interface LoadersSync {
-  [key: string]: LoaderSync;
+  [key: string]: LoaderSync | unknown;
 }

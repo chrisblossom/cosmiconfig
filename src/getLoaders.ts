@@ -1,23 +1,33 @@
+/* eslint-disable @typescript-eslint/no-require-imports,@typescript-eslint/no-var-requires */
+
 import { Loaders, LoadersSync } from './types';
-import { jsLoader } from './loaders/jsLoader';
-import { jsonLoader } from './loaders/jsonLoader';
-import { yamlLoader } from './loaders/yamlLoader';
 
 const defaultLoaders = {
-  '.js': jsLoader,
-  '.json': jsonLoader,
-  '.yaml': yamlLoader,
-  '.yml': yamlLoader,
-  noExt: yamlLoader,
+  '.js': 'jsLoader',
+  '.json': 'jsonLoader',
+  '.yaml': 'yamlLoader',
+  '.yml': 'yamlLoader',
+  noExt: 'yamlLoader',
 } as const;
 
 function getLoaders(
-  loaders: Loaders | LoadersSync = {},
+  customLoaders: Loaders | LoadersSync = {},
 ): Loaders | LoadersSync {
-  return {
-    ...defaultLoaders,
-    ...loaders,
-  };
+  const result: Loaders | LoadersSync = { ...customLoaders };
+
+  Object.entries(defaultLoaders).forEach(([extension, loader]) => {
+    if (
+      Object.prototype.hasOwnProperty.call(customLoaders, extension) === false
+    ) {
+      const requireLoader = require(`./loaders/${loader}`);
+
+      result[extension] = requireLoader[loader];
+    } else if (typeof customLoaders[extension] === 'function') {
+      result[extension] = customLoaders[extension];
+    }
+  });
+
+  return result;
 }
 
-export { getLoaders };
+export { getLoaders, defaultLoaders };

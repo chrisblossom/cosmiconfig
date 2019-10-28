@@ -185,6 +185,32 @@ describe('throws error for invalid package.json', () => {
   });
 });
 
+describe('throws error with invalid json loader when loading package.json', () => {
+  beforeEach(() => {
+    temp.createFile('a/b/package.json', '{ "foo": "bar", }');
+  });
+
+  const explorerOptions = {
+    stopDir: temp.absolutePath('a'),
+    loaders: {
+      '.json': null,
+    },
+  };
+
+  const expectedError =
+    'No loader specified for extension ".json", so searchPlaces item "package.json" is invalid';
+
+  test('async', async () => {
+    expect(() => cosmiconfig('foo', explorerOptions)).toThrow(expectedError);
+  });
+
+  test('sync', () => {
+    expect(() => cosmiconfigSync('foo', explorerOptions)).toThrow(
+      expectedError,
+    );
+  });
+});
+
 describe('throws error for invalid JS in .config.js file', () => {
   beforeEach(() => {
     temp.createFile(

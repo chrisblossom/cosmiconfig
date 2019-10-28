@@ -3,6 +3,7 @@ import del from 'del';
 import makeDir from 'make-dir';
 import parentModule from 'parent-module';
 import os from 'os';
+import { Loaders, LoadersSync } from '../src/types';
 
 const fs = jest.requireActual('fs');
 
@@ -107,4 +108,26 @@ class TempDir {
   }
 }
 
-export { TempDir };
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function getLoaderFunctionsByName(loaders: Loaders | LoadersSync) {
+  const loaderFunctionsByName = Object.entries(loaders).reduce(
+    (acc, [extension, loader]) => {
+      if (typeof loader !== 'function') {
+        return {
+          ...acc,
+          [extension]: loader,
+        };
+      }
+
+      return {
+        ...acc,
+        [extension]: loader.name,
+      };
+    },
+    {},
+  );
+
+  return loaderFunctionsByName;
+}
+
+export { TempDir, getLoaderFunctionsByName };
